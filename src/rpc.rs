@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RPC {
     pub url: String,
     pub avg_response_time: u128,
@@ -9,7 +9,7 @@ pub struct RPC {
     pub responses: Vec<Response>
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response {
     pub method: String,
     pub params: Vec<String>,

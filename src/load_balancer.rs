@@ -18,11 +18,17 @@ impl IConfig {
         IConfig { rpc_urls: rpcs, max_connections, max_responses, max_retries, cache }
     }
 
-    // pub fn sort_rpcs(self) -> IConfig {
+    pub fn sort_rpcs(&mut self) {
+        let list = &mut self.rpc_urls;
 
-    // }
+        list.sort_by(|a, b| a.avg_response_time.partial_cmp(&b.avg_response_time).unwrap());
 
-    // pub fn request(self, request: RpcRequest) -> RpcResponse {
+        self.rpc_urls = list.to_vec();
+    }
 
-    // }
+    pub async fn request(self, request: RpcRequest) -> RpcResponse {
+        let res = helper::request_and_record(&self.rpc_urls[0].url, &request).await.unwrap();
+
+        return RpcResponse { jsonrpc: request.jsonrpc, id: request.id, result: res.result };
+    }
 }
