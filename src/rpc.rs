@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::SystemTime};
 use serde::{Serialize, Deserialize};
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RPC {
     pub url: String,
     pub avg_response_time: u128,
@@ -46,7 +46,7 @@ pub struct RpcError {
     pub time_taken: u128
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct IConfig {
     pub rpc_urls: Vec<RPC>,
     pub max_connections: u64,
@@ -56,7 +56,7 @@ pub struct IConfig {
     pub response_results: HashMap<String, Response>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CacheOptions {
     pub cache_clear: u128,
     pub exclude_methods: Vec<String>
