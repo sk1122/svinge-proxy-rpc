@@ -1,5 +1,6 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, body::BoxBody, http::header::ContentType, ResponseError, http::StatusCode};
-use crate::rpc::{RpcRequest, IConfig, RpcResponse, CacheOptions};
+use actix_web::{post, web, App, HttpResponse, HttpServer, Responder, body::BoxBody, http::header::ContentType, ResponseError, http::StatusCode};
+use crate::common::types::{RpcRequest, RpcResponse, CacheOptions, Blockchain};
+use crate::execution::execution::ExecutionClient;
 use derive_more::{Display, Error};
 
 impl Responder for RpcResponse {
@@ -14,11 +15,6 @@ impl Responder for RpcResponse {
     }
 }
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello World!")
-}
-
 #[derive(Debug, Display, Error)]
 #[display(fmt = "{}", error_message)]
 struct ServerError {
@@ -30,7 +26,7 @@ impl ResponseError for ServerError {}
 
 #[post("/eth")]
 async fn eth(req_body: web::Json<RpcRequest>) -> Result<impl Responder, ServerError> {
-    let req_result= IConfig::new("80001".into(), vec!["https://rpc.ankr.com/polygon_mumbai/".into(), "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into()], 1, 1, 5, CacheOptions { exclude_methods: vec![], cache_clear: 2000000 }, true).await;
+    let req_result= ExecutionClient::new(Blockchain::Evm, "80001".into(), vec!["https://rpc.ankr.com/polygon_mumbai/".into(), "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into()], 1, 1, 5, CacheOptions { exclude_methods: vec![], cache_clear: 2000000 }, true).await;
 
     match req_result {
         Ok(mut req) => {
@@ -46,19 +42,14 @@ async fn eth(req_body: web::Json<RpcRequest>) -> Result<impl Responder, ServerEr
 
 }
 
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey There")
-}
-
-
 pub async fn run_server() -> std::io::Result<()> {
+    println!("Running server on port {}🎉", 8080);
+    
     HttpServer::new(|| {
         App::new()
-            .service(hello)
             .service(eth)
-            .route("/hey", web::get().to(manual_hello))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind("0.0.0.0:8080")?
     .run()
     .await
 }

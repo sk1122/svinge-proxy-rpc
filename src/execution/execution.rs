@@ -1,15 +1,38 @@
 use std::{collections::HashMap, time::SystemTime};
-use crate::{rpc::{*}, helper};
+use serde::{Deserialize, Serialize};
 
-impl IConfig {
-    pub async fn new(chain_id: String, rpc_urls: Vec<String>, max_connections: u64, max_responses: u64, max_retries: u64, cache: CacheOptions, use_cached: bool) -> Result<IConfig, RpcError> {
+use crate::{common::{types::*, helper::*}};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExecutionClient {
+    pub chain_type: Blockchain,
+    pub chain_id: String,
+    pub rpc_urls: Vec<RPC>,
+    pub max_connections: u64,
+    pub max_responses: u64,
+    pub max_retries: u64,
+    pub cache: CacheOptions,
+    pub response_results: HashMap<String, Response>
+}
+
+impl ExecutionClient {
+    pub async fn new(
+        chain_type: Blockchain,
+        chain_id: String, 
+        rpc_urls: Vec<String>, 
+        max_connections: u64, 
+        max_responses: u64, 
+        max_retries: u64, 
+        cache: CacheOptions, 
+        use_cached: bool
+    ) -> Result<ExecutionClient, RpcError> {
         if use_cached {
             let text_result = std::fs::read_to_string(format!("./{}.json", chain_id.as_str()));
 
             match text_result {
                 Ok(text) => {
                     if text.len() > 0 {
-                        let config = serde_json::from_str::<IConfig>(&text).unwrap();
+                        let config = serde_json::from_str::<ExecutionClient>(&text).unwrap();
                         // println!("{:?}", config);
                         return Ok(config);
                     }
@@ -27,7 +50,7 @@ impl IConfig {
             let mut requests = vec![];
             
             for i in 0..5 {
-                let req = helper::request_and_record(rpc, &RpcRequest { jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into() }).await.unwrap();
+                let req = request_and_record(rpc, &RpcRequest { jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into() }).await.unwrap();
                 println!("{}", &req.result[2..]);
                 let chain_id_from_hex = u64::from_str_radix(&req.result[2..], 16).unwrap().to_string();
 
@@ -52,7 +75,16 @@ impl IConfig {
             });
         }
         
-        let mut new_config = IConfig { chain_id, rpc_urls: rpcs, max_connections, max_responses, max_retries, cache, response_results };
+        let mut new_config = ExecutionClient { 
+            chain_type, 
+            chain_id, 
+            rpc_urls: rpcs, 
+            max_connections, 
+            max_responses, 
+            max_retries, 
+            cache, 
+            response_results 
+        };
 
         new_config.sort_rpcs();
 
@@ -118,7 +150,7 @@ impl IConfig {
         let mut err = RpcError::default();
 
         for _ in 0..self.max_retries {
-            let resx = helper::request_and_record(&self.rpc_urls[0].url, &request).await;
+            let resx = request_and_record(&self.rpc_urls[0].url, &request).await;
 
             match resx {
                 Ok(data) => {

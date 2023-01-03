@@ -1,7 +1,12 @@
-use std::{collections::HashMap, time::SystemTime};
-
+use std::time::SystemTime;
 use serde::{Serialize, Deserialize};
 
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Blockchain {
+    Ethereum,
+    Evm,
+    Solana
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RPC {
@@ -45,17 +50,6 @@ pub struct RpcError {
     pub params: Vec<String>,
     pub id: String,
     pub time_taken: u128
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct IConfig {
-    pub chain_id: String,
-    pub rpc_urls: Vec<RPC>,
-    pub max_connections: u64,
-    pub max_responses: u64,
-    pub max_retries: u64,
-    pub cache: CacheOptions,
-    pub response_results: HashMap<String, Response>
 }
 
 #[derive(Debug, Serialize, Deserialize)]

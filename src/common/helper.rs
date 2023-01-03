@@ -1,4 +1,4 @@
-use crate::rpc::{RpcResponse, RpcRequest, Response, RpcError};
+use crate::common::types::{RpcResponse, RpcRequest, Response, RpcError};
 use reqwest::*;
 use std::result::Result;
 use std::time::*;
