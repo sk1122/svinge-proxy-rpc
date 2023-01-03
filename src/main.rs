@@ -1,51 +1,115 @@
-use clap::{self, Parser};
+use clap::{self, Parser, Subcommand};
 use svinge::{execution::execution::ExecutionClient, common::types::{Blockchain, CacheOptions}, server::server::run_server};
+
+#[derive(Subcommand, Debug)]
+enum Subcommands {
+    Custom {
+        #[arg(short, long)]
+        rpcs: Vec<String>,
+
+        #[arg(short = 'c', long = "chain")]
+        chain_id: String,
+        
+        #[arg(short = 't', long = "chain-type")]
+        chain_type: Blockchain,
+
+        #[arg(short = 'm', long = "max-connections")]
+        max_connections: u64,
+
+        #[arg(short = 'x', long = "max-responses")]
+        max_responses: u64,
+
+        #[arg(short = 'i', long = "max-retries")]
+        max_retries: u64,
+
+        #[arg(short = 'a', long = "cache-clear")]
+        cache_clear: u128,
+
+        #[arg(short = 'e', long = "exclude-methods")]
+        exclude_methods: Vec<String>,
+    },
+    Public {
+        #[arg(short = 'p', long = "with-public-providers")]
+        with_public_provider: bool,
+    }
+}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
+#[command(propagate_version = true)]
 struct Args {
-    #[arg(short, long)]
-    rpcs: Vec<String>,
+    #[command(subcommand)]
+    command: Option<Subcommands>
+}
 
-    #[arg(short = 'c', long = "chain")]
-    chain_id: String,
-    
-    #[arg(short = 't', long = "chain-type")]
-    chain_type: Blockchain,
+async fn run_with_public_providers() {
+    let _pol_client = ExecutionClient::new(
+        Blockchain::Evm,
+        "80001".into(),
+        vec!["https://rpc.ankr.com/polygon_mumbai/".into()],
+        5,
+        5,
+        3,
+        CacheOptions {
+            cache_clear: 0,
+            exclude_methods: vec![]
+        },
+        false
+    ).await.unwrap();
 
-    #[arg(short = 'm', long = "max-connections")]
-    pub max_connections: u64,
-
-    #[arg(short = 'x', long = "max-responses")]
-    pub max_responses: u64,
-
-    #[arg(short = 'i', long = "max-retries")]
-    pub max_retries: u64,
-
-    #[arg(short = 'a', long = "cache-clear")]
-    pub cache_clear: u128,
-
-    #[arg(short = 'e', long = "exclude-methods")]
-    exclude_methods: Vec<String>,
+    let _eth_client = ExecutionClient::new(
+        Blockchain::Evm,
+        "5".into(),
+        vec!["https://rpc.ankr.com/eth_goerli/".into()],
+        5,
+        5,
+        3,
+        CacheOptions {
+            cache_clear: 0,
+            exclude_methods: vec![]
+        },
+        false
+    ).await.unwrap();
 }
 
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    
-    let _client = ExecutionClient::new(
-        args.chain_type,
-        args.chain_id,
-        args.rpcs,
-        args.max_connections,
-        args.max_responses,
-        args.max_retries,
-        CacheOptions {
-            cache_clear: args.cache_clear,
-            exclude_methods: args.exclude_methods
-        },
-        false
-    ).await.unwrap();
 
-    run_server().await.unwrap();
+    match args.command {
+        Some(Subcommands::Custom {
+            rpcs,
+            chain_id,
+            chain_type,
+            max_connections,
+            max_responses,
+            max_retries,
+            cache_clear,
+            exclude_methods
+        }) => {
+            let _client = ExecutionClient::new(
+                chain_type,
+                chain_id,
+                rpcs,
+                max_connections,
+                max_responses,
+                max_retries,
+                CacheOptions {
+                    cache_clear: cache_clear,
+                    exclude_methods: exclude_methods
+                },
+                false
+            ).await.unwrap();
+        
+            run_server().await.unwrap();
+        },
+        Some(Subcommands::Public { with_public_provider }) => {
+            if with_public_provider {
+                run_with_public_providers().await;
+
+                run_server().await.unwrap();
+            }
+        },
+        None => println!("default")
+    }    
 }
