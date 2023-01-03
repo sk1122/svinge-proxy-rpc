@@ -1,7 +1,7 @@
 use std::time::SystemTime;
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(clap::ValueEnum, Debug, Clone, Serialize, Deserialize)]
 pub enum Blockchain {
     Ethereum,
     Evm,
