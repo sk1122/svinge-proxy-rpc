@@ -3,9 +3,6 @@ use reqwest::*;
 use std::result::Result;
 use std::time::*;
 
-// use hyper::{Client, Request, Method, StatusCode, Body};
-// use hyper::net::HttpsConnector;
-// use hyper_native_tls::NativeTlsClient;
 
 pub async fn request_and_record(url: &String, body: &RpcRequest) -> Result<Response, RpcError> {
     // println!("STARTED {} {:?}", url, body);
@@ -15,10 +12,17 @@ pub async fn request_and_record(url: &String, body: &RpcRequest) -> Result<Respo
     let res= client.post(url).json(&body).send().await.unwrap();
     // println!("completed response");
     let status = res.status();
-
+    println!("{:?}", status);
     if status == StatusCode::OK || status == StatusCode::ACCEPTED || status == StatusCode::CREATED {
-        let response = res.json::<RpcResponse>().await.unwrap();
+        let response_result = res.json::<RpcResponse>().await;
         let elapsed_time = start.elapsed();
+    
+        let mut response = RpcResponse::default();
+
+        match response_result {
+            Ok(res) => response = res,
+            Err(err) => return Err(RpcError { error: err.to_string(), jsonrpc: body.jsonrpc.clone(), method: body.method.clone(), params: body.params.clone(), id: body.id.clone(), time_taken: elapsed_time.as_millis() })
+        }
     
         let response: Response = Response {
             method: body.method.clone(),
@@ -43,48 +47,3 @@ pub async fn request_and_record(url: &String, body: &RpcRequest) -> Result<Respo
     }
     
 }
-
-// pub async fn request_and_record(url: &String, body: &RpcRequest) -> Result<Response, RpcError> {
-//     let ssl = NativeTlsClient::new().unwrap();
-//     let connector = HttpsConnector::new(ssl);
-
-//     let client = Client::new();
-//     let start = Instant::now();
-//     println!("{}", url);
-//     let request = Request::builder()
-//         .method(Method::POST)
-//         .uri(url)
-//         .header("content-type", "application/json")
-//         .body(Body::from(serde_json::to_string_pretty(body).unwrap())).unwrap();
-
-//     let res = client.request(request).await.unwrap();
-
-//     if(res.status() == StatusCode::OK || res.status() == StatusCode::ACCEPTED || res.status() == StatusCode::CREATED) {
-//         let elapsed_time = start.elapsed();
-//         println!("{:?}", res.body());
-//         // let body_stream = hyper::body::to_bytes(&res.body()).await.unwrap();
-
-//         // let response: RpcResponse = serde_json::from_slice(&body_stream).unwrap();
-
-//         let response: Response = Response {
-//             method: body.method.clone(),
-//             params: body.params.clone(),
-//             result: String::from(""),
-//             time_taken: elapsed_time.as_millis(),
-//             start_time: SystemTime::now()
-//         };
-
-//         return Ok(response);
-//     } else {
-//         let elapsed_time = start.elapsed();
-        
-//         Err(RpcError {
-//             jsonrpc: body.jsonrpc.clone(),
-//             id: body.id.clone(),
-//             error: String::from(""),
-//             method: body.method.clone(),
-//             params: body.params.clone(),
-//             time_taken: elapsed_time.as_millis()
-//         })
-//     }
-// }

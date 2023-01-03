@@ -1,4 +1,3 @@
-use crate::rpc::{IConfig, CacheOptions, RpcRequest};
 use crate::server::run_server;
 use env_logger;
 
@@ -16,3 +15,4 @@ pub mod rpc;
 mod load_balancer;
 pub mod helper;
 pub mod server;
+pub mod consensus;

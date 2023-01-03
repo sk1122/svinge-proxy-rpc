@@ -9,6 +9,7 @@ pub struct RPC {
     pub avg_response_time: u128,
     pub connections: u64,
     pub weight: u64,
+    pub response_counter: u64,
     pub responses: Vec<Response>
 }
 
@@ -48,6 +49,7 @@ pub struct RpcError {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IConfig {
+    pub chain_id: String,
     pub rpc_urls: Vec<RPC>,
     pub max_connections: u64,
     pub max_responses: u64,
@@ -60,4 +62,29 @@ pub struct IConfig {
 pub struct CacheOptions {
     pub cache_clear: u128,
     pub exclude_methods: Vec<String>
+}
+
+impl Default for Response {
+    fn default() -> Response {
+        Response {
+            method: "".into(),
+            params: vec![],
+            result: "".into(),
+            time_taken: 12,
+            start_time: SystemTime::now()   
+        }
+    }
+}
+
+impl Default for RpcResponse {
+    fn default() -> RpcResponse {
+        RpcResponse { jsonrpc: "".into(), result: "".into(), id: "".into() }
+    }
+}
+
+
+impl Default for RpcError {
+    fn default() -> RpcError {
+        RpcError { jsonrpc: "".into(), error: "".into(), method:"".into(), params: vec![], time_taken: 0, id: "".into() }
+    }
 }
