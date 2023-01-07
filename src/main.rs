@@ -1,5 +1,11 @@
 use clap::{self, Parser, Subcommand};
-use svinge::{execution::execution::ExecutionClient, common::types::{Blockchain, CacheOptions}, server::server::run_server};
+use futures::{stream, StreamExt};
+use reqwest::Client;
+use svinge::{
+    common::types::{Blockchain, CacheOptions, RpcRequest, RpcResponse},
+    execution::execution::ExecutionClient,
+    server::server::run_server,
+};
 
 #[derive(Subcommand, Debug)]
 enum Subcommands {
@@ -9,7 +15,7 @@ enum Subcommands {
 
         #[arg(short = 'c', long = "chain")]
         chain_id: String,
-        
+
         #[arg(short = 't', long = "chain-type")]
         chain_type: Blockchain,
 
@@ -31,7 +37,7 @@ enum Subcommands {
     Public {
         #[arg(short = 'p', long = "with-public-providers")]
         with_public_provider: bool,
-    }
+    },
 }
 
 #[derive(Parser, Debug)]
@@ -39,38 +45,76 @@ enum Subcommands {
 #[command(propagate_version = true)]
 struct Args {
     #[command(subcommand)]
-    command: Option<Subcommands>
+    command: Option<Subcommands>,
 }
 
 async fn run_with_public_providers() {
     let _pol_client = ExecutionClient::new(
         Blockchain::Evm,
         "80001".into(),
-        vec!["https://rpc.ankr.com/polygon_mumbai/".into()],
+        vec![
+            "https://rpc.ankr.com/polygon_mumbai/".into(),
+            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/polygon_mumbai/".into(),
+            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/polygon_mumbai/".into(),
+            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/polygon_mumbai/".into(),
+            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/polygon_mumbai/".into(),
+            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/polygon_mumbai/".into(),
+            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/polygon_mumbai/".into(),
+            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/polygon_mumbai/".into(),
+            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+        ],
         5,
         5,
         3,
         CacheOptions {
             cache_clear: 0,
-            exclude_methods: vec![]
+            exclude_methods: vec![],
         },
-        false
-    ).await.unwrap();
+        false,
+    )
+    .await
+    .unwrap();
 
     let _eth_client = ExecutionClient::new(
         Blockchain::Evm,
         "5".into(),
-        vec!["https://rpc.ankr.com/eth_goerli/".into()],
+        vec![
+            "https://rpc.ankr.com/eth_goerli/".into(),
+            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/eth_goerli/".into(),
+            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/eth_goerli/".into(),
+            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/eth_goerli/".into(),
+            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/eth_goerli/".into(),
+            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/eth_goerli/".into(),
+            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+            "https://rpc.ankr.com/eth_goerli/".into(),
+            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
+        ],
         5,
         5,
         3,
         CacheOptions {
             cache_clear: 0,
-            exclude_methods: vec![]
+            exclude_methods: vec![],
         },
-        false
-    ).await.unwrap();
+        false,
+    )
+    .await
+    .unwrap();
 }
+
+const PARALLEL_REQUESTS: usize = 2;
 
 #[tokio::main]
 async fn main() {
@@ -85,7 +129,7 @@ async fn main() {
             max_responses,
             max_retries,
             cache_clear,
-            exclude_methods
+            exclude_methods,
         }) => {
             let _client = ExecutionClient::new(
                 chain_type,
@@ -96,20 +140,24 @@ async fn main() {
                 max_retries,
                 CacheOptions {
                     cache_clear: cache_clear,
-                    exclude_methods: exclude_methods
+                    exclude_methods: exclude_methods,
                 },
-                false
-            ).await.unwrap();
-        
+                false,
+            )
+            .await
+            .unwrap();
+
             run_server().await.unwrap();
-        },
-        Some(Subcommands::Public { with_public_provider }) => {
+        }
+        Some(Subcommands::Public {
+            with_public_provider,
+        }) => {
             if with_public_provider {
                 run_with_public_providers().await;
 
                 run_server().await.unwrap();
             }
-        },
-        None => println!("default")
-    }    
+        }
+        None => println!("default"),
+    }
 }

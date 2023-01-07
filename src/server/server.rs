@@ -48,6 +48,7 @@ async fn eth(req_body: web::Json<RpcRequest>) -> Result<impl Responder, ServerEr
 
     match req_result {
         Ok(mut req) => {
+            req.request_and_validate(&req_body.clone()).await;
             let res = req.request(req_body.into_inner()).await;
         
             match res {

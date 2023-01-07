@@ -27,14 +27,14 @@ pub struct Response {
     pub start_time: SystemTime
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RpcResponse {
     pub jsonrpc: String,
     pub result: String,
     pub id: String
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize)]
 pub struct RpcRequest {
     pub jsonrpc: String,
     pub method: String,

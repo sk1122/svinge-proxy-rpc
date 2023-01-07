@@ -1,4 +1,6 @@
 use std::{collections::HashMap, time::SystemTime};
+use futures::{stream, StreamExt, FutureExt, join, future::join_all};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 use crate::{common::{types::*, helper::*}};
@@ -14,6 +16,8 @@ pub struct ExecutionClient {
     pub cache: CacheOptions,
     pub response_results: HashMap<String, Response>
 }
+
+const PARALLEL_REQUESTS: usize = 8;
 
 impl ExecutionClient {
     pub async fn new(
@@ -45,25 +49,26 @@ impl ExecutionClient {
         let mut rpcs: Vec<RPC> = vec![];
         let mut response_results: HashMap<String, Response> = HashMap::new();
 
-        for rpc in rpc_urls.iter() {
-            let mut avg_time_taken = 0;
-            let mut requests = vec![];
-            
-            for i in 0..5 {
-                let req = request_and_record(rpc, &RpcRequest { jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into() }).await.unwrap();
-                println!("{}", &req.result[2..]);
-                let chain_id_from_hex = u64::from_str_radix(&req.result[2..], 16).unwrap().to_string();
+        let demo = &RpcRequest { jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into() };
 
-                if chain_id != chain_id_from_hex {
-                    return Err(RpcError { error: format!("{} is not equal to RPCs response {}", chain_id, chain_id_from_hex), jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into(), time_taken: 0 })
-                }
-                
-                avg_time_taken = (avg_time_taken + req.time_taken) / (i + 1);
-                
-                response_results.insert("eth_chainId".into(), req.clone());
-                
-                requests.push(req);
+        let responses = rpc_urls.iter().map(|rpc| {
+            request_and_record(rpc, demo).boxed()
+        }).collect::<Vec<_>>();
+
+        let results = join_all(responses).await;
+
+        for (rpc, result) in rpc_urls.iter().zip(results) {
+            let res = result.unwrap();
+
+            let chain_id_from_hex = u64::from_str_radix(&res.result[2..], 16).unwrap().to_string();
+
+            if chain_id != chain_id_from_hex {
+                return Err(RpcError { error: format!("{} is not equal to RPCs response {}", chain_id, chain_id_from_hex), jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into(), time_taken: 0 })
             }
+            
+            let avg_time_taken = res.time_taken;
+            
+            response_results.insert("eth_chainId".into(), res.clone());
 
             rpcs.push(RPC {
                 url: rpc.clone(),
@@ -71,9 +76,39 @@ impl ExecutionClient {
                 connections: 0,
                 weight: 0,
                 response_counter: 0,
-                responses: requests
+                responses: vec![res]
             });
         }
+
+        // for rpc in rpc_urls.iter() {
+        //     let mut avg_time_taken = 0;
+        //     let mut requests = vec![];
+            
+        //     for i in 0..5 {
+        //         let req = request_and_record(rpc, &RpcRequest { jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into() }).await.unwrap();
+        //         println!("{}", &req.result[2..]);
+        //         let chain_id_from_hex = u64::from_str_radix(&req.result[2..], 16).unwrap().to_string();
+
+        //         if chain_id != chain_id_from_hex {
+        //             return Err(RpcError { error: format!("{} is not equal to RPCs response {}", chain_id, chain_id_from_hex), jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into(), time_taken: 0 })
+        //         }
+                
+        //         avg_time_taken = (avg_time_taken + req.time_taken) / (i + 1);
+                
+        //         response_results.insert("eth_chainId".into(), req.clone());
+                
+        //         requests.push(req);
+        //     }
+
+        //     rpcs.push(RPC {
+        //         url: rpc.clone(),
+        //         avg_response_time: avg_time_taken,
+        //         connections: 0,
+        //         weight: 0,
+        //         response_counter: 0,
+        //         responses: requests
+        //     });
+        // }
         
         let mut new_config = ExecutionClient { 
             chain_type, 
@@ -178,5 +213,26 @@ impl ExecutionClient {
         self.sort_rpcs();
 
         Ok(RpcResponse { jsonrpc: request.jsonrpc, id: request.id, result: res.result })
+    }
+
+    pub async fn request_and_validate(&mut self, request: &RpcRequest) {
+        println!("started 123");
+        let urls: Vec<String> = vec![String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"), String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/")];
+
+        // let mut responses = vec![];
+
+        let requests = urls.iter().map(|rpc| {
+            request_and_record(rpc, request).boxed()
+        }).collect::<Vec<_>>();
+
+        let results = join_all(requests).await;
+
+        for (rpc, result) in urls.iter().zip(results) {
+            let res = result.unwrap();
+
+            println!("{:?}", res);
+
+            // todo: validate
+        }
     }
 }
