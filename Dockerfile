@@ -5,4 +5,6 @@ COPY ./ ./
 EXPOSE 8080
 RUN cargo build --release
 
-CMD [ "./target/release/svinge" ]
+RUN chmod +x ./entrypoint.sh
+
+ENTRYPOINT [ "./entrypoint.sh" ]
