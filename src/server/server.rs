@@ -48,8 +48,24 @@ async fn eth(req_body: web::Json<RpcRequest>) -> Result<impl Responder, ServerEr
 
     match req_result {
         Ok(mut req) => {
-            req.request_and_validate(&req_body.clone()).await;
             let res = req.request(req_body.into_inner()).await;
+        
+            match res {
+                Ok(result) => Ok(result),
+                Err(err) => Err(ServerError { error_message: err.error, status: StatusCode::BAD_REQUEST })
+            }
+        },
+        Err(err) => Err(ServerError { error_message: err.error, status: StatusCode::BAD_REQUEST })
+    }
+}
+
+#[post("/ultra/eth")]
+async fn ultra_eth(req_body: web::Json<RpcRequest>) -> Result<impl Responder, ServerError> {
+    let req_result= ExecutionClient::new(Blockchain::Evm, "5".into(), vec!["https://rpc.ankr.com/polygon_mumbai/".into(), "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into()], 1, 1, 5, CacheOptions { exclude_methods: vec![], cache_clear: 2000000 }, true).await;
+
+    match req_result {
+        Ok(mut req) => {
+            let res = req.request_and_validate(&req_body.into_inner()).await;
         
             match res {
                 Ok(result) => Ok(result),
@@ -67,6 +83,7 @@ pub async fn run_server() -> std::io::Result<()> {
         App::new()
             .service(eth)
             .service(pol)
+            .service(ultra_eth)
     })
     .bind("0.0.0.0:8080")?
     .run()

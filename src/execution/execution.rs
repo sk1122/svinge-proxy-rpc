@@ -1,9 +1,8 @@
 use std::{collections::HashMap, time::SystemTime};
-use futures::{stream, StreamExt, FutureExt, join, future::join_all};
-use reqwest::Client;
+use futures::{FutureExt, future::join_all};
 use serde::{Deserialize, Serialize};
 
-use crate::{common::{types::*, helper::*}};
+use crate::{common::{types::*, helper::*}, extract_enum_value};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExecutionClient {
@@ -16,8 +15,6 @@ pub struct ExecutionClient {
     pub cache: CacheOptions,
     pub response_results: HashMap<String, Response>
 }
-
-const PARALLEL_REQUESTS: usize = 8;
 
 impl ExecutionClient {
     pub async fn new(
@@ -51,16 +48,25 @@ impl ExecutionClient {
 
         let demo = &RpcRequest { jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into() };
 
-        let responses = rpc_urls.iter().map(|rpc| {
-            request_and_record(rpc, demo).boxed()
-        }).collect::<Vec<_>>();
+        let mut responses = vec![];
+
+        for i in 0..5 {
+            println!("{}", i);
+            responses.append(&mut rpc_urls.iter().map(|rpc| {
+                request_and_record(rpc, demo).boxed()
+            }).collect::<Vec<_>>());
+        }
 
         let results = join_all(responses).await;
 
         for (rpc, result) in rpc_urls.iter().zip(results) {
             let res = result.unwrap();
 
-            let chain_id_from_hex = u64::from_str_radix(&res.result[2..], 16).unwrap().to_string();
+            let chain_id_en = &res.result;
+
+            let chain_id_enum = extract_enum_value!(chain_id_en, ResponseInnerData::Text(chain_id_en) => chain_id_en);
+
+            let chain_id_from_hex = u64::from_str_radix(&chain_id_enum[2..], 16).unwrap().to_string();
 
             if chain_id != chain_id_from_hex {
                 return Err(RpcError { error: format!("{} is not equal to RPCs response {}", chain_id, chain_id_from_hex), jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into(), time_taken: 0 })
@@ -158,6 +164,7 @@ impl ExecutionClient {
     }
 
     pub async fn request(&mut self, request: RpcRequest) -> Result<RpcResponse, RpcError> {
+        println!("{:?}", request);
         if (self.rpc_urls[0].connections > self.max_connections) || (self.rpc_urls[0].response_counter > self.max_responses) {
             println!("{} {} {} {}", self.rpc_urls[0].connections, self.rpc_urls[0].response_counter, self.max_connections, self.max_responses);
             self.swap_rpcs(1);
@@ -215,24 +222,30 @@ impl ExecutionClient {
         Ok(RpcResponse { jsonrpc: request.jsonrpc, id: request.id, result: res.result })
     }
 
-    pub async fn request_and_validate(&mut self, request: &RpcRequest) {
+    pub async fn request_and_validate(&mut self, request: &RpcRequest) -> Result<RpcResponse, RpcError> {
         println!("started 123");
-        let urls: Vec<String> = vec![String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"), String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/"),String::from("https://rpc.ankr.com/polygon_mumbai/"), String::from("https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/")];
-
         // let mut responses = vec![];
 
-        let requests = urls.iter().map(|rpc| {
-            request_and_record(rpc, request).boxed()
+        let requests = self.rpc_urls.iter().map(|rpc| {
+            request_and_record(&rpc.url, request).boxed()
         }).collect::<Vec<_>>();
 
         let results = join_all(requests).await;
 
-        for (rpc, result) in urls.iter().zip(results) {
+        let mut response = RpcResponse::default();
+
+        for (_, result) in self.rpc_urls.iter().zip(results) {
             let res = result.unwrap();
 
-            println!("{:?}", res);
+            response = RpcResponse {
+                jsonrpc: request.jsonrpc.clone(),
+                id: request.id.clone(),
+                result: res.result
+            }
 
             // todo: validate
         }
+
+        Ok(response)
     }
 }

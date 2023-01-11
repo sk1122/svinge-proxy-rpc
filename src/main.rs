@@ -1,8 +1,6 @@
 use clap::{self, Parser, Subcommand};
-use futures::{stream, StreamExt};
-use reqwest::Client;
 use svinge::{
-    common::types::{Blockchain, CacheOptions, RpcRequest, RpcResponse},
+    common::types::{Blockchain, CacheOptions},
     execution::execution::ExecutionClient,
     server::server::run_server,
 };
@@ -55,20 +53,6 @@ async fn run_with_public_providers() {
         vec![
             "https://rpc.ankr.com/polygon_mumbai/".into(),
             "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/polygon_mumbai/".into(),
-            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/polygon_mumbai/".into(),
-            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/polygon_mumbai/".into(),
-            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/polygon_mumbai/".into(),
-            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/polygon_mumbai/".into(),
-            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/polygon_mumbai/".into(),
-            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/polygon_mumbai/".into(),
-            "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
         ],
         5,
         5,
@@ -88,18 +72,6 @@ async fn run_with_public_providers() {
         vec![
             "https://rpc.ankr.com/eth_goerli/".into(),
             "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/eth_goerli/".into(),
-            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/eth_goerli/".into(),
-            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/eth_goerli/".into(),
-            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/eth_goerli/".into(),
-            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/eth_goerli/".into(),
-            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
-            "https://rpc.ankr.com/eth_goerli/".into(),
-            "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
         ],
         5,
         5,
@@ -113,8 +85,6 @@ async fn run_with_public_providers() {
     .await
     .unwrap();
 }
-
-const PARALLEL_REQUESTS: usize = 2;
 
 #[tokio::main]
 async fn main() {
