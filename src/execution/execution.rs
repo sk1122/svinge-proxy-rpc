@@ -1,6 +1,7 @@
 use std::{collections::HashMap, time::SystemTime};
 use futures::{FutureExt, future::join_all};
 use serde::{Deserialize, Serialize};
+use log::{info, warn};
 
 use crate::{common::{types::*, helper::*}, extract_enum_value};
 
@@ -28,6 +29,7 @@ impl ExecutionClient {
         use_cached: bool
     ) -> Result<ExecutionClient, RpcError> {
         if use_cached {
+            info!("Looking if there is a cached file already...");
             let text_result = std::fs::read_to_string(format!("./{}.json", chain_id.as_str()));
 
             match text_result {
@@ -38,7 +40,7 @@ impl ExecutionClient {
                         return Ok(config);
                     }
                 },
-                Err(_) => println!("error")
+                Err(_) => warn!("Not found a cached file")
             }
 
         }
@@ -50,9 +52,11 @@ impl ExecutionClient {
 
         let mut responses = vec![];
 
+        info!("Requesting {} RPCs and recording their performances", rpc_urls.len());
+
         for i in 0..5 {
-            println!("{}", i);
             responses.append(&mut rpc_urls.iter().map(|rpc| {
+                info!("Requesting {} RPC for ${} time", rpc, i);
                 request_and_record(rpc, demo).boxed()
             }).collect::<Vec<_>>());
         }
@@ -69,8 +73,11 @@ impl ExecutionClient {
             let chain_id_from_hex = u64::from_str_radix(&chain_id_enum[2..], 16).unwrap().to_string();
 
             if chain_id != chain_id_from_hex {
+                warn!("{} is not equal to RPCs response {}", chain_id, chain_id_from_hex);
                 return Err(RpcError { error: format!("{} is not equal to RPCs response {}", chain_id, chain_id_from_hex), jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into(), time_taken: 0 })
             }
+
+            info!("All RPCs are of chain {}", chain_id_from_hex);
             
             let avg_time_taken = res.time_taken;
             
@@ -85,36 +92,6 @@ impl ExecutionClient {
                 responses: vec![res]
             });
         }
-
-        // for rpc in rpc_urls.iter() {
-        //     let mut avg_time_taken = 0;
-        //     let mut requests = vec![];
-            
-        //     for i in 0..5 {
-        //         let req = request_and_record(rpc, &RpcRequest { jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into() }).await.unwrap();
-        //         println!("{}", &req.result[2..]);
-        //         let chain_id_from_hex = u64::from_str_radix(&req.result[2..], 16).unwrap().to_string();
-
-        //         if chain_id != chain_id_from_hex {
-        //             return Err(RpcError { error: format!("{} is not equal to RPCs response {}", chain_id, chain_id_from_hex), jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into(), time_taken: 0 })
-        //         }
-                
-        //         avg_time_taken = (avg_time_taken + req.time_taken) / (i + 1);
-                
-        //         response_results.insert("eth_chainId".into(), req.clone());
-                
-        //         requests.push(req);
-        //     }
-
-        //     rpcs.push(RPC {
-        //         url: rpc.clone(),
-        //         avg_response_time: avg_time_taken,
-        //         connections: 0,
-        //         weight: 0,
-        //         response_counter: 0,
-        //         responses: requests
-        //     });
-        // }
         
         let mut new_config = ExecutionClient { 
             chain_type, 
@@ -141,30 +118,38 @@ impl ExecutionClient {
     }
 
     fn swap_rpcs(&mut self, idx: usize) {
-        let len = self.rpc_urls.len() - 1;
-        self.rpc_urls[0].response_counter = 0;
-
-        //println!("{} {} {:?}", self.rpc_urls[0].url, self.rpc_urls[len].url, self.rpc_urls);
-        self.rpc_urls.swap(0, len);
-        //println!("{} {}", self.rpc_urls[0].url, self.rpc_urls[len].url);
-        if len < idx {
-            self.rpc_urls.swap(0, idx);
-            //println!("{} {}", self.rpc_urls[0].url, self.rpc_urls[idx].url);
+        info!("Swapping RPCs");
+        
+        if idx > 0 {
+            let len = self.rpc_urls.len() - 1;
+            self.rpc_urls[0].response_counter = 0;
+    
+            //println!("{} {} {:?}", self.rpc_urls[0].url, self.rpc_urls[len].url, self.rpc_urls);
+            self.rpc_urls.swap(0, len);
+            //println!("{} {}", self.rpc_urls[0].url, self.rpc_urls[len].url);
+            if len < idx {
+                self.rpc_urls.swap(0, idx);
+                //println!("{} {}", self.rpc_urls[0].url, self.rpc_urls[idx].url);
+            }
         }
+
     }
 
     pub fn sort_rpcs(&mut self) {
+        info!("Sorting RPCs");
         let list = &mut self.rpc_urls;
 
         list.sort_by(|a, b| a.avg_response_time.partial_cmp(&b.avg_response_time).unwrap());
         
         self.rpc_urls = list.to_vec();
+
+        info!("Sorted RPCs, first -> {}, last -> {}", self.rpc_urls[0].url, self.rpc_urls.last().unwrap().url);
         
         self.update_db();
     }
 
     pub async fn request(&mut self, request: RpcRequest) -> Result<RpcResponse, RpcError> {
-        println!("{:?}", request);
+        info!("Received a request -> {:?}", request);
         if (self.rpc_urls[0].connections > self.max_connections) || (self.rpc_urls[0].response_counter > self.max_responses) {
             println!("{} {} {} {}", self.rpc_urls[0].connections, self.rpc_urls[0].response_counter, self.max_connections, self.max_responses);
             self.swap_rpcs(1);
@@ -185,7 +170,7 @@ impl ExecutionClient {
             }
         }
 
-        println!("not cached {}", self.rpc_urls[0].url);
+        info!("not cached {}", self.rpc_urls[0].url);
 
         let mut res = Response::default();
 

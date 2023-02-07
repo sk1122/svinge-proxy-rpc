@@ -73,8 +73,8 @@ async fn run_with_public_providers() {
             "https://rpc.ankr.com/eth_goerli/".into(),
             "https://eth-goerli.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into(),
         ],
-        5,
-        5,
+        1,
+        1,
         3,
         CacheOptions {
             cache_clear: 0,
@@ -88,6 +88,8 @@ async fn run_with_public_providers() {
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     let args = Args::parse();
 
     match args.command {

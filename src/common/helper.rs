@@ -22,8 +22,7 @@ pub async fn request_and_record(url: &String, body: &RpcRequest) -> Result<Respo
     let res= client.post(url).json(&body).send().await.unwrap();
     // println!("completed response");
     let status = res.status();
-    println!("{:?}", status);
-
+    
     if status == StatusCode::OK || status == StatusCode::ACCEPTED || status == StatusCode::CREATED {
         let response_result = res.json::<RpcResponse>().await;
         let elapsed_time = start.elapsed();
@@ -66,7 +65,6 @@ pub async fn request_and_record_bytes(url: &String, body: &RpcRequest) -> Result
     let res= client.post(url).json(&body).send().await.unwrap();
     // println!("completed response");
     let status = res.status();
-    println!("{:?}", status);
 
     if status == StatusCode::OK || status == StatusCode::ACCEPTED || status == StatusCode::CREATED {
         let bytes = res.bytes().await.unwrap();

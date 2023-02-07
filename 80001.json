@@ -1,0 +1,63 @@
+{
+  "chain_type": "Evm",
+  "chain_id": "80001",
+  "rpc_urls": [
+    {
+      "url": "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/",
+      "avg_response_time": 799,
+      "connections": 0,
+      "weight": 0,
+      "response_counter": 0,
+      "responses": [
+        {
+          "method": "eth_chainId",
+          "params": [],
+          "result": "0x13881",
+          "time_taken": 799,
+          "start_time": {
+            "secs_since_epoch": 1673463508,
+            "nanos_since_epoch": 510552322
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://rpc.ankr.com/polygon_mumbai/",
+      "avg_response_time": 958,
+      "connections": 0,
+      "weight": 0,
+      "response_counter": 0,
+      "responses": [
+        {
+          "method": "eth_chainId",
+          "params": [],
+          "result": "0x13881",
+          "time_taken": 958,
+          "start_time": {
+            "secs_since_epoch": 1673463508,
+            "nanos_since_epoch": 606079071
+          }
+        }
+      ]
+    }
+  ],
+  "max_connections": 5,
+  "max_responses": 5,
+  "max_retries": 3,
+  "cache": {
+    "cache_clear": 0,
+    "exclude_methods": []
+  },
+  "response_results": {
+    "eth_chainId": {
+      "method": "eth_chainId",
+      "params": [],
+      "result": "0x13881",
+      "time_taken": 799,
+      "start_time": {
+        "secs_since_epoch": 1673463508,
+        "nanos_since_epoch": 510552322
+      }
+    }
+  }
+}
