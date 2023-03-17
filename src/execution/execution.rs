@@ -30,7 +30,7 @@ impl ExecutionClient {
     ) -> Result<ExecutionClient, RpcError> {
         if use_cached {
             info!("Looking if there is a cached file already...");
-            let text_result = std::fs::read_to_string(format!("./{}.json", chain_id.as_str()));
+            let text_result = std::fs::read_to_string(format!("/tmp/svinge/{}.json", chain_id.as_str()));
 
             match text_result {
                 Ok(text) => {
@@ -113,7 +113,7 @@ impl ExecutionClient {
     }
 
     fn update_db(&self) {
-        let path = format!("./{}.json", self.chain_id.as_str());
+        let path = format!("/tmp/svinge/{}.json", self.chain_id.as_str());
 
         std::fs::write(path, serde_json::to_string_pretty(self).unwrap()).unwrap();
     }

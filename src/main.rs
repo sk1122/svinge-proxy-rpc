@@ -90,6 +90,8 @@ async fn run_with_public_providers() {
 async fn main() {
     env_logger::init();
 
+    unsafe { std::fs::create_dir("/tmp/svinge").unwrap_err_unchecked(); };
+
     let args = Args::parse();
 
     match args.command {
