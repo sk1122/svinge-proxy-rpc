@@ -23,9 +23,10 @@ pub struct RPC {
 pub struct Response {
     pub method: String,
     pub params: Vec<InnerData>,
-    pub result: ResponseInnerData,
+    pub result: Option<ResponseInnerData>,
     pub time_taken: u128,
-    pub start_time: SystemTime
+    pub start_time: SystemTime,
+    pub error: Option<ResponseInnerData>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,8 +43,9 @@ pub enum ResponseInnerData {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RpcResponse {
     pub jsonrpc: String,
-    pub result: ResponseInnerData,
-    pub id: String
+    pub result: Option<ResponseInnerData>,
+    pub id: NumberString,
+    pub error: Option<ResponseInnerData>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,7 +54,15 @@ pub enum InnerData {
     Text(String),
     TextArray(Vec<String>),
     NumberArray(Vec<u64>),
-    Boolean(bool)
+    Boolean(bool),
+    Object(Map<String, Value>)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum NumberString {
+    Text(String),
+    Number(i32)
 }
 
 #[derive(Debug, Serialize, Clone, Deserialize)]
@@ -60,7 +70,7 @@ pub struct RpcRequest {
     pub jsonrpc: String,
     pub method: String,
     pub params: Vec<InnerData>,
-    pub id: String
+    pub id: NumberString
 }
 
 #[derive(Debug)]
@@ -69,7 +79,7 @@ pub struct RpcError {
     pub jsonrpc: String,
     pub method: String,
     pub params: Vec<InnerData>,
-    pub id: String,
+    pub id: NumberString,
     pub time_taken: u128
 }
 
@@ -84,22 +94,23 @@ impl Default for Response {
         Response {
             method: "".into(),
             params: vec![],
-            result: ResponseInnerData::Text("".into()),
+            result: Some(ResponseInnerData::Text("".into())),
             time_taken: 12,
-            start_time: SystemTime::now()   
+            start_time: SystemTime::now(),
+            error: None
         }
     }
 }
 
 impl Default for RpcResponse {
     fn default() -> RpcResponse {
-        RpcResponse { jsonrpc: "".into(), result: ResponseInnerData::Text("".into()), id: "".into() }
+        RpcResponse { jsonrpc: "".into(), result: Some(ResponseInnerData::Text("".into())), id: NumberString::Text("".into()), error: None }
     }
 }
 
 
 impl Default for RpcError {
     fn default() -> RpcError {
-        RpcError { jsonrpc: "".into(), error: "".into(), method:"".into(), params: vec![], time_taken: 0, id: "".into() }
+        RpcError { jsonrpc: "".into(), error: "".into(), method:"".into(), params: vec![], time_taken: 0, id: NumberString::Text("".into()) }
     }
 }

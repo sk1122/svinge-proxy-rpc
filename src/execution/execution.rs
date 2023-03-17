@@ -35,6 +35,7 @@ impl ExecutionClient {
             match text_result {
                 Ok(text) => {
                     if text.len() > 0 {
+                        println!("{}", text);
                         let config = serde_json::from_str::<ExecutionClient>(&text).unwrap();
                         // println!("{:?}", config);
                         return Ok(config);
@@ -48,7 +49,7 @@ impl ExecutionClient {
         let mut rpcs: Vec<RPC> = vec![];
         let mut response_results: HashMap<String, Response> = HashMap::new();
 
-        let demo = &RpcRequest { jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into() };
+        let demo = &RpcRequest { jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: NumberString::Number(1) };
 
         let mut responses = vec![];
 
@@ -68,13 +69,13 @@ impl ExecutionClient {
 
             let chain_id_en = &res.result;
 
-            let chain_id_enum = extract_enum_value!(chain_id_en, ResponseInnerData::Text(chain_id_en) => chain_id_en);
+            let chain_id_enum = extract_enum_value!(chain_id_en, Some(ResponseInnerData::Text(chain_id_en)) => chain_id_en);
 
             let chain_id_from_hex = u64::from_str_radix(&chain_id_enum[2..], 16).unwrap().to_string();
 
             if chain_id != chain_id_from_hex {
                 warn!("{} is not equal to RPCs response {}", chain_id, chain_id_from_hex);
-                return Err(RpcError { error: format!("{} is not equal to RPCs response {}", chain_id, chain_id_from_hex), jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: "1".into(), time_taken: 0 })
+                return Err(RpcError { error: format!("{} is not equal to RPCs response {}", chain_id, chain_id_from_hex), jsonrpc: "2.0".into(), method: "eth_chainId".into(), params: vec![], id: NumberString::Text("1".into()), time_taken: 0 })
             }
 
             info!("All RPCs are of chain {}", chain_id_from_hex);
@@ -166,7 +167,7 @@ impl ExecutionClient {
             
             if SystemTime::now().duration_since(cached_result.start_time).unwrap().as_micros() <= self.cache.cache_clear {
                 println!("cached {}", self.rpc_urls[0].url);
-                return Ok(RpcResponse { jsonrpc: request.jsonrpc, id: request.id, result: cached_result.result });
+                return Ok(RpcResponse { jsonrpc: request.jsonrpc, id: request.id, result: cached_result.result, error: cached_result.error });
             }
         }
 
@@ -204,7 +205,7 @@ impl ExecutionClient {
 
         self.sort_rpcs();
 
-        Ok(RpcResponse { jsonrpc: request.jsonrpc, id: request.id, result: res.result })
+        Ok(RpcResponse { jsonrpc: request.jsonrpc, id: request.id, result: res.result, error: res.error })
     }
 
     pub async fn request_and_validate(&mut self, request: &RpcRequest) -> Result<RpcResponse, RpcError> {
@@ -225,7 +226,8 @@ impl ExecutionClient {
             response = RpcResponse {
                 jsonrpc: request.jsonrpc.clone(),
                 id: request.id.clone(),
-                result: res.result
+                result: res.result,
+                error: res.error
             }
 
             // todo: validate

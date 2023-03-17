@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder, body::BoxBody, http::header::ContentType, ResponseError, http::StatusCode};
 use crate::common::types::{RpcRequest, RpcResponse, CacheOptions, Blockchain};
 use crate::execution::execution::ExecutionClient;
@@ -44,6 +45,7 @@ async fn pol(req_body: web::Json<RpcRequest>) -> Result<impl Responder, ServerEr
 
 #[post("/eth")]
 async fn eth(req_body: web::Json<RpcRequest>) -> Result<impl Responder, ServerError> {
+    println!("recevied");
     let req_result= ExecutionClient::new(Blockchain::Evm, "5".into(), vec!["https://rpc.ankr.com/polygon_mumbai/".into(), "https://polygon-mumbai.g.alchemy.com/v2/Tv9MYE2mD4zn3ziBLd6S94HvLLjTocju/".into()], 1, 1, 5, CacheOptions { exclude_methods: vec![], cache_clear: 2000000 }, true).await;
 
     match req_result {
@@ -80,7 +82,9 @@ pub async fn run_server() -> std::io::Result<()> {
     println!("Running server on port {}🎉", 8080);
     
     HttpServer::new(|| {
+        let cors = Cors::default().allow_any_origin().allow_any_method().allow_any_header().supports_credentials();
         App::new()
+            .wrap(cors)
             .service(eth)
             .service(pol)
             .service(ultra_eth)

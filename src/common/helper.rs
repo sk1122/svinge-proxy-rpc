@@ -4,6 +4,8 @@ use reqwest::*;
 use std::result::Result;
 use std::time::*;
 
+use super::types::NumberString;
+
 #[macro_export]
 macro_rules! extract_enum_value {
   ($value:expr, $pattern:pat => $extracted_value:expr) => {
@@ -39,7 +41,8 @@ pub async fn request_and_record(url: &String, body: &RpcRequest) -> Result<Respo
             params: body.params.clone(),
             result: response.result,
             time_taken: elapsed_time.as_millis(),
-            start_time: SystemTime::now()
+            start_time: SystemTime::now(),
+            error: response.error
         };
     
         Ok(response)
